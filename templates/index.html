@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>せどりリサーチツール</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: #f4f6f9;
+      color: #2c3e50;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #2c3e50;
+      color: #fff;
+      padding: 20px 0;
+      text-align: center;
+    }
+    header h1 { font-size: 1.6rem; letter-spacing: 0.05em; }
+    header p  { font-size: 0.85rem; opacity: 0.75; margin-top: 4px; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+    .search-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      margin-bottom: 24px;
+    }
+    .search-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .search-row input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      padding: 12px 16px;
+      border: 1.5px solid #dce1e8;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-row input[type="text"]:focus { border-color: #2980b9; }
+
+    .search-row select {
+      padding: 12px 12px;
+      border: 1.5px solid #dce1e8;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: #fff;
+      cursor: pointer;
+    }
+    .search-row button {
+      padding: 12px 28px;
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+    .search-row button:hover { background: #1f6390; }
+    .search-row button:disabled { background: #aaa; cursor: not-allowed; }
+
+    .msg {
+      text-align: center;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+    }
+    .msg.error   { background: #fdecea; color: #c0392b; }
+    .msg.info    { background: #eaf4fb; color: #1a6a9a; }
+    .msg.success { background: #eafaf1; color: #1e8449; }
+    .msg.loading { background: #fef9e7; color: #9a6a00; }
+    .hidden { display: none; }
+
+    .result-count {
+      font-size: 0.9rem;
+      color: #7f8c8d;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      margin-bottom: 18px;
+    }
+    .card-top {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .card-top img {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+      border-radius: 6px;
+      border: 1px solid #eee;
+      flex-shrink: 0;
+    }
+    .card-info { flex: 1; }
+    .rank-badge {
+      display: inline-block;
+      background: #2c3e50;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+    .item-name {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #2c3e50;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .item-shop { font-size: 0.82rem; color: #7f8c8d; margin-bottom: 6px; }
+    .item-price {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+    .item-price span { font-size: 0.8rem; color: #7f8c8d; margin-left: 4px; }
+    .card-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.82rem;
+      color: #2980b9;
+      text-decoration: none;
+    }
+    .card-link:hover { text-decoration: underline; }
+
+    .sim-section {
+      border-top: 1px solid #ecf0f1;
+      margin-top: 16px;
+      padding-top: 16px;
+    }
+    .sim-section h3 {
+      font-size: 0.9rem;
+      color: #7f8c8d;
+      margin-bottom: 12px;
+    }
+    .sim-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .sim-input-row label { font-size: 0.9rem; white-space: nowrap; }
+    .sim-input-row input[type="number"] {
+      width: 160px;
+      padding: 8px 12px;
+      border: 1.5px solid #dce1e8;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    .sim-input-row input:focus { outline: none; border-color: #2980b9; }
+    .sim-input-row button {
+      padding: 8px 18px;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .sim-input-row button:hover { background: #1e8449; }
+
+    .sim-result { display: none; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .metric {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .metric .label { font-size: 0.75rem; color: #7f8c8d; margin-bottom: 4px; }
+    .metric .value { font-size: 1.1rem; font-weight: bold; color: #2c3e50; }
+    .metric.profit .value { color: #27ae60; }
+    .metric.loss   .value { color: #e74c3c; }
+    .metric.rate   .value { color: #2980b9; }
+
+    .verdict {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .verdict.great  { background: #eafaf1; color: #1e8449; }
+    .verdict.ok     { background: #eaf4fb; color: #1a6a9a; }
+    .verdict.low    { background: #fef9e7; color: #9a6a00; }
+    .verdict.loss   { background: #fdecea; color: #c0392b; }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.8rem;
+      color: #bdc3c7;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🛒 せどりリサーチツール</h1>
+  <p>楽天市場の最安値を調べて、Amazonでの利益を計算します</p>
+</header>
+
+<div class="container">
+
+  <div class="search-box">
+    <div class="search-row">
+      <input type="text" id="keyword" placeholder="例：ゲーム機本体、ワイヤレスイヤホン" />
+      <select id="hits">
+        <option value="5">5件</option>
+        <option value="10" selected>10件</option>
+        <option value="20">20件</option>
+        <option value="30">30件</option>
+      </select>
+      <button id="searchBtn" onclick="doSearch()">🔍 最安値を検索</button>
+    </div>
+  </div>
+
+  <div id="msg" class="msg hidden"></div>
+  <div id="resultCount" class="result-count hidden"></div>
+  <div id="results"></div>
+
+</div>
+
+<footer>楽天市場API利用 ／ Amazon手数料は15%で計算しています</footer>
+
+<script>
+  document.getElementById('keyword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  function showMsg(text, type) {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  function hideMsg() {
+    document.getElementById('msg').className = 'msg hidden';
+  }
+
+  async function doSearch() {
+    const keyword = document.getElementById('keyword').value.trim();
+    const hits    = document.getElementById('hits').value;
+    const btn     = document.getElementById('searchBtn');
+
+    if (!keyword) { showMsg('⚠️ 商品名を入力してください。', 'error'); return; }
+
+    btn.disabled = true;
+    btn.textContent = '検索中...';
+    showMsg('⏳ 楽天市場を検索中です...', 'loading');
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('resultCount').className = 'result-count hidden';
+
+    try {
+      const res  = await fetch('/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword, hits })
+      });
+      const data = await res.json();
+
+      if (!res.ok) { showMsg('❌ ' + (data.error || 'エラーが発生しました。'), 'error'); return; }
+      if (!data.items || data.items.length === 0) {
+        showMsg('⚠️ 検索結果が見つかりませんでした。別のキーワードで試してください。', 'error');
+        return;
+      }
+
+      hideMsg();
+      const countEl = document.getElementById('resultCount');
+      countEl.textContent = `✅ ${data.items.length} 件の商品が見つかりました`;
+      countEl.className = 'result-count';
+
+      const container = document.getElementById('results');
+      container.innerHTML = data.items.map((item, i) => buildCard(item, i)).join('');
+
+    } catch (err) {
+      showMsg('❌ 通信エラーが発生しました。しばらくしてから再試行してください。', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔍 最安値を検索';
+    }
+  }
+
+  function buildCard(item, i) {
+    const imgHtml = item.image
+      ? `<img src="${item.image}" alt="商品画像" onerror="this.style.display='none'">`
+      : `<div style="width:90px;height:90px;background:#f0f0f0;border-radius:6px;"></div>`;
+
+    const shortName = item.name.length > 80 ? item.name.slice(0, 80) + '…' : item.name;
+
+    return `
+      <div class="card">
+        <div class="card-top">
+          ${imgHtml}
+          <div class="card-info">
+            <span class="rank-badge">第 ${i+1} 位</span>
+            <div class="item-name">${escHtml(shortName)}</div>
+            <div class="item-shop">🏪 ${escHtml(item.shop)}</div>
+            <div class="item-price">¥${item.price.toLocaleString()}<span>（仕入れ価格）</span></div>
+            <a class="card-link" href="${item.url}" target="_blank" rel="noopener">▶ 楽天市場で見る</a>
+          </div>
+        </div>
+        <div class="sim-section">
+          <h3>📦 利益シミュレーション</h3>
+          <div class="sim-input-row">
+            <label>Amazon売却価格（円）</label>
+            <input type="number" id="amazon_${i}" min="0" step="100" placeholder="0"
+              oninput="calcProfit(${i}, ${item.price})">
+          </div>
+          <div class="sim-result" id="sim_${i}">
+            <div class="metrics">
+              <div class="metric">
+                <div class="label">仕入れ価格</div>
+                <div class="value" id="m_buy_${i}">¥${item.price.toLocaleString()}</div>
+              </div>
+              <div class="metric">
+                <div class="label">Amazon売却価格</div>
+                <div class="value" id="m_sell_${i}">—</div>
+              </div>
+              <div class="metric">
+                <div class="label">Amazon手数料（15%）</div>
+                <div class="value" id="m_fee_${i}">—</div>
+              </div>
+              <div class="metric" id="m_profit_box_${i}">
+                <div class="label" id="m_profit_label_${i}">予想利益</div>
+                <div class="value" id="m_profit_${i}">—</div>
+              </div>
+              <div class="metric rate">
+                <div class="label">利益率</div>
+                <div class="value" id="m_rate_${i}">—</div>
+              </div>
+            </div>
+            <div class="verdict" id="verdict_${i}"></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function calcProfit(i, buyPrice) {
+    const sellPrice = parseInt(document.getElementById(`amazon_${i}`).value) || 0;
+    const simEl = document.getElementById(`sim_${i}`);
+
+    if (sellPrice <= 0) { simEl.style.display = 'none'; return; }
+
+    const fee    = Math.floor(sellPrice * 0.15);
+    const profit = Math.floor(sellPrice * 0.85 - buyPrice);
+    const rate   = (profit / sellPrice * 100).toFixed(1);
+
+    document.getElementById(`m_sell_${i}`).textContent   = `¥${sellPrice.toLocaleString()}`;
+    document.getElementById(`m_fee_${i}`).textContent    = `¥${fee.toLocaleString()}`;
+    document.getElementById(`m_profit_${i}`).textContent = (profit >= 0 ? '+' : '') + `¥${profit.toLocaleString()}`;
+    document.getElementById(`m_rate_${i}`).textContent   = `${rate}％`;
+
+    const profitBox = document.getElementById(`m_profit_box_${i}`);
+    const label     = document.getElementById(`m_profit_label_${i}`);
+    if (profit >= 0) {
+      profitBox.className = 'metric profit';
+      label.textContent = '💰 予想利益';
+    } else {
+      profitBox.className = 'metric loss';
+      label.textContent = '💸 予想損失';
+    }
+
+    const verdict = document.getElementById(`verdict_${i}`);
+    if (profit < 0) {
+      verdict.className = 'verdict loss';
+      verdict.textContent = `🔴 この価格では赤字です。Amazon価格を引き上げるか、別の商品を検討してください。`;
+    } else if (parseFloat(rate) >= 20) {
+      verdict.className = 'verdict great';
+      verdict.textContent = `🟢 利益率 ${rate}％ — 優良案件です！積極的に仕入れを検討しましょう。`;
+    } else if (parseFloat(rate) >= 10) {
+      verdict.className = 'verdict ok';
+      verdict.textContent = `🟡 利益率 ${rate}％ — まずまずの案件です。送料・手数料を再確認しましょう。`;
+    } else {
+      verdict.className = 'verdict low';
+      verdict.textContent = `🟠 利益率 ${rate}％ — 利益率が低めです。送料・諸経費を差し引くと赤字になる可能性があります。`;
+    }
+
+    simEl.style.display = 'block';
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
